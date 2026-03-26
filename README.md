@@ -117,28 +117,28 @@ Daily log returns showing volatility clustering around zero.
 
 ### Rolling Volatility (20-day)
 
-![Rolling Volatility](rolling_volatility.png)
+![Rolling Volatility](Rolling_volatility.png)
 20-day rolling standard deviation capturing time-varying risk.
 
 ---
 
 ### Rolling Volatility (5-day)
 
-![5-Day Volatility](volatility_5day.png)
+![5-Day Volatility](5_rolling_volatility.png)
 5-day rolling volatility emphasizing short-term fluctuations.
 
 ---
 
 ### OLS Residuals
 
-![OLS Residuals](ols_residuals.png)
+![OLS Residuals](Ols_ressidual.png)
 Residual plot from OLS model of log returns vs rolling volatility.
 
 ---
 
 ### OLS Q-Q Plot
 
-![OLS QQ](ols_qq.png)
+![OLS QQ](ols_QQ.png)
 Q-Q plot checking normality of OLS residuals.
 
 ---
