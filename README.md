@@ -103,7 +103,7 @@ The analysis is implemented in **R** and combines statistical testing, volatilit
 
 ### Stock Price Over Time
 
-![Stock Price](timeplot_1.png)
+![Stock Price](timeplot__1.png)
 Time plot of adjusted closing prices over the entire dataset.
 
 ---
