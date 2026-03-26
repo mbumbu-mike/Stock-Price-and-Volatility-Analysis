@@ -1,0 +1,234 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+  md_document: default
+  html_notebook: default
+---
+
+ Stock Price and Volatility Analysis (Notebook)
+---
+title: "Stock Price and Volatility Analysis"
+output: html_document
+---
+
+## 1. Setup
+
+```{r, warning=FALSE, message=FALSE, error=FALSE}
+# your code here
+library(tidyverse)
+library(lubridate)
+library(tseries)
+library(FinTS)
+library(zoo)
+library(lmtest)
+library(stats4)
+```
+
+---
+
+## 2. Load and Inspect Data
+
+```{r}
+data <- read.csv("C:/Users/admin/Desktop/New folder/su work/1.2/timeseries/stock.csv")
+
+head(data)
+str(data)
+
+colSums(is.na(data))
+```
+
+We focus only on the relevant variables: date and adjusted closing price.
+
+```{r}
+data1 <- data[, c("Date", "Adj..Close")]
+colnames(data1) <- c("Date", "Price")
+```
+
+---
+
+## 3. Data Preparation
+
+Convert dates and sort the dataset chronologically.
+
+```{r}
+data1$Date <- mdy(trimws(data1$Date))
+data2 <- data1 %>% arrange(Date)
+
+head(data2)
+```
+
+---
+
+## 4. Price Visualization
+
+```{r}
+plot(data2$Date, data2$Price, type = "l",
+     main = "Stock Price Over Time",
+     xlab = "Date", ylab = "Price")
+grid()
+```
+
+The price series shows long-term trends but does not directly reveal volatility patterns.
+
+---
+
+## 5. Compute Log Returns
+
+```{r}
+data2$log_return <- c(NA, diff(log(data2$Price)))
+data2 <- data2[-1, ]
+
+head(data2)
+```
+
+```{r, warning=FALSE, message=FALSE, error=FALSE}
+# your code here
+plot(data2$Date, data2$log_return, type = "l",
+     col = "green", lwd = 2,
+     main = "Log Returns",
+     xlab = "Date", ylab = "Log Return")
+abline(h = 0, col = "red", lty = 2)
+```
+
+Log returns fluctuate around zero and highlight volatility clustering.
+
+---
+
+## 6. Statistical Properties
+
+### Stationarity
+
+```{r}
+adf.test(data2$log_return)
+```
+
+### Autocorrelation
+
+```{r}
+acf(data2$log_return)
+pacf(data2$log_return)
+
+Box.test(data2$log_return, lag = 20, type = "Ljung-Box")
+```
+
+### Heteroskedasticity
+
+```{r}
+ArchTest(data2$log_return)
+```
+
+These tests help determine whether volatility models are appropriate.
+
+---
+
+## 7. Volatility Estimation
+
+### Overall Volatility
+
+```{r}
+sd(data2$log_return)
+```
+
+### Rolling Volatility (20 days)
+
+```{r}
+data2$vol_20 <- rollapply(data2$log_return, 20, sd, fill = NA)
+
+plot(data2$Date, data2$vol_20, type = "l",
+     main = "20-Day Rolling Volatility",
+     xlab = "Date", ylab = "Volatility")
+```
+
+### Rolling Volatility (5 days)
+
+```{r}
+data2$vol_5 <- rollapply(data2$log_return, 5, sd, fill = NA)
+
+plot(data2$Date, data2$vol_5, type = "l",
+     main = "5-Day Rolling Volatility",
+     xlab = "Date", ylab = "Volatility")
+```
+
+Volatility clearly changes over time, confirming non-constant variance.
+
+---
+
+## 8. Risk-Return Relationship (OLS)
+
+```{r}
+ols_model <- lm(log_return ~ vol_5, data = data2)
+summary(ols_model)
+```
+
+```{r}
+ols_model2 <- lm(log_return ~ vol_20, data = data2)
+summary(ols_model2)
+```
+
+These models explore whether higher volatility is associated with higher returns.
+
+---
+
+## 9. Model Diagnostics
+
+```{r}
+# Residual mean
+mean(residuals(ols_model))
+
+# Homoscedasticity
+plot(ols_model$fitted.values, residuals(ols_model))
+abline(h = 0, col = "red")
+
+bptest(ols_model)
+
+# Normality
+qqnorm(residuals(ols_model))
+qqline(residuals(ols_model), col = "red")
+
+shapiro.test(residuals(ols_model))
+
+# Autocorrelation
+dwtest(ols_model)
+```
+
+---
+
+## 10. Maximum Likelihood Estimation
+
+Prepare clean data:
+
+```{r}
+data_mle <- na.omit(data2[, c("log_return", "vol_5")])
+```
+
+Define likelihood function:
+
+```{r}
+loglik <- function(alpha, beta, sigma) {
+  mu <- alpha + beta * data_mle$vol_5
+  -sum(dnorm(data_mle$log_return, mean = mu, sd = sigma, log = TRUE))
+}
+```
+
+Estimate parameters:
+
+```{r, warning=FALSE, message=FALSE, error=FALSE}
+mle_model <- mle(loglik,
+                 start = list(alpha = 0, beta = 0.1, sigma = 0.02),
+                 method = "BFGS")
+
+summary(mle_model)
+```
+
+---
+
+## 11. Key Takeaways
+
+* Returns are stationary but exhibit volatility clustering
+* ARCH effects suggest time-varying variance
+* Rolling volatility confirms changing risk levels
+* OLS provides basic insights but has limitations
+* MLE improves parameter estimation
+
